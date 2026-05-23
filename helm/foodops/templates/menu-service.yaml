@@ -1,0 +1,55 @@
+# Menu Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.menuService.name }}
+  labels:
+    app: {{ .Values.menuService.name }}
+spec:
+  replicas: {{ .Values.menuService.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.menuService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.menuService.name }}
+    spec:
+      containers:
+        - name: {{ .Values.menuService.name }}
+          image: {{ .Values.registry }}/{{ .Values.menuService.image }}:{{ .Values.imageTag }}
+          ports:
+            - containerPort: {{ .Values.menuService.port }}
+          resources:
+            requests:
+              cpu: {{ .Values.menuService.resources.requests.cpu }}
+              memory: {{ .Values.menuService.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.menuService.resources.limits.cpu }}
+              memory: {{ .Values.menuService.resources.limits.memory }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.menuService.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.menuService.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+# Menu Service - Kubernetes Service (internal DNS: menu-service:8000)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.menuService.name }}
+spec:
+  selector:
+    app: {{ .Values.menuService.name }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.menuService.port }}
+      targetPort: {{ .Values.menuService.port }}
+  type: ClusterIP

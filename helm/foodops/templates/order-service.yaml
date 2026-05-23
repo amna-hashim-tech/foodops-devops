@@ -1,0 +1,58 @@
+# Order Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.orderService.name }}
+  labels:
+    app: {{ .Values.orderService.name }}
+spec:
+  replicas: {{ .Values.orderService.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.orderService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.orderService.name }}
+    spec:
+      containers:
+        - name: {{ .Values.orderService.name }}
+          image: {{ .Values.registry }}/{{ .Values.orderService.image }}:{{ .Values.imageTag }}
+          ports:
+            - containerPort: {{ .Values.orderService.port }}
+          env:
+            - name: MENU_SERVICE_URL
+              value: "http://{{ .Values.menuService.name }}:{{ .Values.menuService.port }}"
+          resources:
+            requests:
+              cpu: {{ .Values.orderService.resources.requests.cpu }}
+              memory: {{ .Values.orderService.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.orderService.resources.limits.cpu }}
+              memory: {{ .Values.orderService.resources.limits.memory }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.orderService.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.orderService.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+# Order Service - exposed externally via LoadBalancer
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.orderService.name }}
+spec:
+  selector:
+    app: {{ .Values.orderService.name }}
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: {{ .Values.orderService.port }}
+  type: LoadBalancer

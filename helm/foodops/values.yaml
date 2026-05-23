@@ -1,0 +1,31 @@
+# FoodOps Helm Chart Values
+# These values are overridden in CI/CD with the real ACR image tags
+
+registry: "foodopsacr.azurecr.io"
+imageTag: "latest"
+
+menuService:
+  name: menu-service
+  image: menu-service
+  port: 8000
+  replicas: 2
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+
+orderService:
+  name: order-service
+  image: order-service
+  port: 8001
+  replicas: 2
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
