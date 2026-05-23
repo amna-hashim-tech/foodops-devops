@@ -1,4 +1,4 @@
-# 🍽️ FoodOps — Cloud Native Food Ordering System
+#  FoodOps — Cloud Native Food Ordering System
 
 A production-grade DevOps project demonstrating microservices, Kubernetes, CI/CD, and Infrastructure as Code on Azure.
 
