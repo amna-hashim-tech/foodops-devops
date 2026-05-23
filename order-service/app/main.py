@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import httpx
@@ -10,6 +11,13 @@ app = FastAPI(
     title="FoodOps Order Service",
     description="Handles order placement and tracking. Talks to Menu Service to validate items.",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Menu Service URL - injected via environment variable (set in Kubernetes deployment)
