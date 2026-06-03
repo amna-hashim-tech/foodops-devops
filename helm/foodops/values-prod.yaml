@@ -1,0 +1,23 @@
+# PRODUCTION environment values
+environment: "production"
+namespace: "foodops-prod"
+
+menuService:
+  replicas: 3
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+orderService:
+  replicas: 3
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"

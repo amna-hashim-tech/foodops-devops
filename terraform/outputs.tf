@@ -18,3 +18,12 @@ output "kube_config" {
   value       = azurerm_kubernetes_cluster.aks.kube_config_raw
   sensitive   = true
 }
+
+output "namespaces" {
+  description = "The three environment namespaces"
+  value = {
+    dev        = kubernetes_namespace.dev.metadata[0].name
+    staging    = kubernetes_namespace.staging.metadata[0].name
+    production = kubernetes_namespace.production.metadata[0].name
+  }
+}

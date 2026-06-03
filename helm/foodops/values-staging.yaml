@@ -1,0 +1,23 @@
+# STAGING environment values — mirrors production
+environment: "staging"
+namespace: "foodops-staging"
+
+menuService:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "150m"
+      memory: "192Mi"
+    limits:
+      cpu: "300m"
+      memory: "384Mi"
+
+orderService:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "150m"
+      memory: "192Mi"
+    limits:
+      cpu: "300m"
+      memory: "384Mi"

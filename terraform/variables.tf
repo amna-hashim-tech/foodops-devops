@@ -33,7 +33,6 @@ variable "tags" {
   type        = map(string)
   default = {
     project     = "foodops"
-    environment = "production"
     owner       = "amna"
   }
 }
