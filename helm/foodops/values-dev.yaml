@@ -1,15 +1,8 @@
-# FoodOps Helm Chart Values
-# These values are overridden per environment in the pipeline
-
-registry: "foodopsacr.azurecr.io"
-imageTag: "latest"
+# DEV environment values
 environment: "dev"
 namespace: "foodops-dev"
 
 menuService:
-  name: menu-service
-  image: menu-service
-  port: 8000
   replicas: 1
   resources:
     requests:
@@ -20,9 +13,6 @@ menuService:
       memory: "256Mi"
 
 orderService:
-  name: order-service
-  image: order-service
-  port: 8001
   replicas: 1
   resources:
     requests:

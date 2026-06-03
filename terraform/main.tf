@@ -4,8 +4,11 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.0"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
   }
-  # Remote state stored in Azure Storage (best practice)
   backend "azurerm" {
     resource_group_name  = "foodops-tfstate-rg"
     storage_account_name = "foodopstfstate"
@@ -18,14 +21,21 @@ provider "azurerm" {
   features {}
 }
 
-# Resource Group
+provider "kubernetes" {
+  host                   = azurerm_kubernetes_cluster.aks.kube_config[0].host
+  client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_config[0].client_certificate)
+  client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_config[0].client_key)
+  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_config[0].cluster_ca_certificate)
+}
+
+# ─── RESOURCE GROUP ───
 resource "azurerm_resource_group" "foodops" {
   name     = var.resource_group_name
   location = var.location
   tags     = var.tags
 }
 
-# Azure Container Registry (stores Docker images)
+# ─── AZURE CONTAINER REGISTRY ───
 resource "azurerm_container_registry" "acr" {
   name                = var.acr_name
   resource_group_name = azurerm_resource_group.foodops.name
@@ -35,7 +45,17 @@ resource "azurerm_container_registry" "acr" {
   tags                = var.tags
 }
 
-# AKS Cluster
+# ─── LOG ANALYTICS ───
+resource "azurerm_log_analytics_workspace" "foodops" {
+  name                = "${var.aks_cluster_name}-logs"
+  location            = azurerm_resource_group.foodops.location
+  resource_group_name = azurerm_resource_group.foodops.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+  tags                = var.tags
+}
+
+# ─── AKS CLUSTER ───
 resource "azurerm_kubernetes_cluster" "aks" {
   name                = var.aks_cluster_name
   location            = azurerm_resource_group.foodops.location
@@ -53,13 +73,12 @@ resource "azurerm_kubernetes_cluster" "aks" {
     type = "SystemAssigned"
   }
 
-  # Enable Azure Monitor for containers
   oms_agent {
     log_analytics_workspace_id = azurerm_log_analytics_workspace.foodops.id
   }
 }
 
-# Grant AKS permission to pull images from ACR
+# ─── GIVE AKS PERMISSION TO PULL FROM ACR ───
 resource "azurerm_role_assignment" "aks_acr_pull" {
   principal_id                     = azurerm_kubernetes_cluster.aks.kubelet_identity[0].object_id
   role_definition_name             = "AcrPull"
@@ -67,12 +86,36 @@ resource "azurerm_role_assignment" "aks_acr_pull" {
   skip_service_principal_aad_check = true
 }
 
-# Log Analytics Workspace (for Azure Monitor)
-resource "azurerm_log_analytics_workspace" "foodops" {
-  name                = "${var.aks_cluster_name}-logs"
-  location            = azurerm_resource_group.foodops.location
-  resource_group_name = azurerm_resource_group.foodops.name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
-  tags                = var.tags
+# ─── THREE KUBERNETES NAMESPACES ───
+resource "kubernetes_namespace" "dev" {
+  metadata {
+    name = "foodops-dev"
+    labels = {
+      environment = "dev"
+      project     = "foodops"
+    }
+  }
+  depends_on = [azurerm_kubernetes_cluster.aks]
+}
+
+resource "kubernetes_namespace" "staging" {
+  metadata {
+    name = "foodops-staging"
+    labels = {
+      environment = "staging"
+      project     = "foodops"
+    }
+  }
+  depends_on = [azurerm_kubernetes_cluster.aks]
+}
+
+resource "kubernetes_namespace" "production" {
+  metadata {
+    name = "foodops-prod"
+    labels = {
+      environment = "production"
+      project     = "foodops"
+    }
+  }
+  depends_on = [azurerm_kubernetes_cluster.aks]
 }
