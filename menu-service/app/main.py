@@ -30,6 +30,7 @@ MENU_ITEMS = {
     "9": {"id": "9", "name": "Sparkling Water", "category": "drinks", "price": 10.0, "available": True},
     "10": {"id": "10", "name": "Wagyu Beef Steak", "category": "mains", "price": 120.0, "available": True},
     "11": {"id": "11", "name": "Truffle Pasta", "category": "mains", "price": 95.0, "available": True},
+     "12": {"id": "12", "name": "Lobster Bisque", "category": "starters", "price": 65.0, "available": True},
 
 }
 
