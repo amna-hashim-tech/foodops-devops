@@ -15,11 +15,8 @@ spec:
       labels:
         app: {{ .Values.menuService.name }}
     spec:
-      containers:
-        - name: {{ .Values.menuService.name }}
-          image: {{ .Values.registry }}/{{ .Values.menuService.image }}:{{ .Values.imageTag }}
-          ports:
-            - containerPort: {{ .Values.menuService.port }}
+      
+      
           resources:
             requests:
               cpu: {{ .Values.menuService.resources.requests.cpu }}
@@ -52,4 +49,4 @@ spec:
     - protocol: TCP
       port: {{ .Values.menuService.port }}
       targetPort: {{ .Values.menuService.port }}
-  type: ClusterIP
+  type: LoadBalancer
