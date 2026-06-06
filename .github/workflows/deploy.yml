@@ -12,35 +12,26 @@ env:
   RESOURCE_GROUP: foodops-rg
 
 jobs:
-  # ─────────────────────────────────────────
-  # JOB 1: Run tests on every branch
-  # ─────────────────────────────────────────
   test:
     name: Run Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Test Menu Service
         run: |
           cd menu-service
           pip install -r requirements.txt
           pytest tests/ -v
-
       - name: Test Order Service
         run: |
           cd order-service
           pip install -r requirements.txt
           pytest tests/ -v
 
-  # ─────────────────────────────────────────
-  # JOB 2: Build and push Docker images
-  # ─────────────────────────────────────────
   build:
     name: Build and Push Images
     runs-on: ubuntu-latest
@@ -49,31 +40,24 @@ jobs:
       image_tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Generate image tag from commit SHA
         id: tag
         run: echo "tag=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-
       - name: Login to Azure Container Registry
         uses: docker/login-action@v3
         with:
-          registry: docker.io
+          registry: foodopsacr.azurecr.io
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
-
       - name: Build and Push Menu Service
         run: |
           docker build -t ${{ env.DOCKER_REGISTRY }}/menu-service:${{ steps.tag.outputs.tag }} ./menu-service
           docker push ${{ env.DOCKER_REGISTRY }}/menu-service:${{ steps.tag.outputs.tag }}
-
       - name: Build and Push Order Service
         run: |
           docker build -t ${{ env.DOCKER_REGISTRY }}/order-service:${{ steps.tag.outputs.tag }} ./order-service
           docker push ${{ env.DOCKER_REGISTRY }}/order-service:${{ steps.tag.outputs.tag }}
 
-  # ─────────────────────────────────────────
-  # JOB 3: Deploy to DEV (auto on dev branch)
-  # ─────────────────────────────────────────
   deploy-dev:
     name: Deploy to DEV
     runs-on: ubuntu-latest
@@ -81,45 +65,32 @@ jobs:
     if: github.ref == 'refs/heads/dev'
     environment:
       name: dev
-      url: http://dev.foodops.local
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
       - name: Get AKS credentials
         run: |
           az aks get-credentials \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.AKS_CLUSTER }}
-
       - name: Install Helm
         uses: azure/setup-helm@v3
-
       - name: Deploy to DEV namespace
         run: |
           helm upgrade --install foodops-dev ./helm/foodops \
             --namespace foodops-dev \
             --values ./helm/foodops/values-dev.yaml \
-            --set registry=docker.io/amna93 \
+            --set registry=${{ env.DOCKER_REGISTRY }} \
             --set imageTag=${{ needs.build.outputs.image_tag }} \
-            --wait \
-            --timeout 5m
-
+            --wait --timeout 5m
       - name: Verify DEV deployment
         run: |
-          echo "--- Pods in DEV ---"
           kubectl get pods -n foodops-dev
-          echo "--- Services in DEV ---"
           kubectl get services -n foodops-dev
 
-  # ─────────────────────────────────────────
-  # JOB 4: Deploy to STAGING (auto on staging branch)
-  # ─────────────────────────────────────────
   deploy-staging:
     name: Deploy to STAGING
     runs-on: ubuntu-latest
@@ -127,45 +98,32 @@ jobs:
     if: github.ref == 'refs/heads/staging'
     environment:
       name: staging
-      url: http://staging.foodops.local
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
       - name: Get AKS credentials
         run: |
           az aks get-credentials \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.AKS_CLUSTER }}
-
       - name: Install Helm
         uses: azure/setup-helm@v3
-
       - name: Deploy to STAGING namespace
         run: |
           helm upgrade --install foodops-staging ./helm/foodops \
             --namespace foodops-staging \
             --values ./helm/foodops/values-staging.yaml \
-            --set registry=docker.io/amna93 \
+            --set registry=${{ env.DOCKER_REGISTRY }} \
             --set imageTag=${{ needs.build.outputs.image_tag }} \
-            --wait \
-            --timeout 5m
-
+            --wait --timeout 5m
       - name: Verify STAGING deployment
         run: |
-          echo "--- Pods in STAGING ---"
           kubectl get pods -n foodops-staging
-          echo "--- Services in STAGING ---"
           kubectl get services -n foodops-staging
 
-  # ─────────────────────────────────────────
-  # JOB 5: Deploy to PRODUCTION (manual approval required)
-  # ─────────────────────────────────────────
   deploy-production:
     name: Deploy to PRODUCTION
     runs-on: ubuntu-latest
@@ -173,38 +131,28 @@ jobs:
     if: github.ref == 'refs/heads/master'
     environment:
       name: production
-      url: http://foodops.live
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
       - name: Get AKS credentials
         run: |
           az aks get-credentials \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.AKS_CLUSTER }}
-
       - name: Install Helm
         uses: azure/setup-helm@v3
-
       - name: Deploy to PRODUCTION namespace
         run: |
           helm upgrade --install foodops-prod ./helm/foodops \
             --namespace foodops-prod \
             --values ./helm/foodops/values-prod.yaml \
-            --set registry=docker.io/amna93 \
+            --set registry=${{ env.DOCKER_REGISTRY }} \
             --set imageTag=${{ needs.build.outputs.image_tag }} \
-            --wait \
-            --timeout 5m
-
+            --wait --timeout 5m
       - name: Verify PRODUCTION deployment
         run: |
-          echo "--- Pods in PRODUCTION ---"
           kubectl get pods -n foodops-prod
-          echo "--- Services in PRODUCTION ---"
           kubectl get services -n foodops-prod
